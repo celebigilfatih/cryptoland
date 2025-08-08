@@ -89,7 +89,7 @@ def create_candlestick_chart(df, symbol, selected_indicators=None):
             subplot_titles=["Fiyat"] + (["Hacim"] if "volume" in selected_indicators else []) + (["RSI"] if "rsi" in selected_indicators else []) + (["MACD"] if "macd" in selected_indicators else [])
         )
         
-        # Mum grafiği ekle
+        # Mum grafiği ekle - Daha belirgin ve görünür ayarlarla
         fig.add_trace(
             go.Candlestick(
                 x=df['timestamp'],
@@ -97,7 +97,18 @@ def create_candlestick_chart(df, symbol, selected_indicators=None):
                 high=df['high'],
                 low=df['low'],
                 close=df['close'],
-                name="Fiyat"
+                name="Fiyat",
+                increasing=dict(
+                    line=dict(color='#00ff00', width=1.5),  # Yeşil yükseliş mumları
+                    fillcolor='rgba(0, 255, 0, 0.8)'
+                ),
+                decreasing=dict(
+                    line=dict(color='#ff0000', width=1.5),  # Kırmızı düşüş mumları
+                    fillcolor='rgba(255, 0, 0, 0.8)'
+                ),
+                line=dict(width=1.5),
+                whiskerwidth=0.8,
+                visible=True
             ),
             row=1, col=1
         )
@@ -205,122 +216,216 @@ def create_candlestick_chart(df, symbol, selected_indicators=None):
                     row=1, col=1
                 )
         
-        # Fair Value Gap (FVG) gösterimi
+        # Fair Value Gap (FVG) gösterimi - Daha düzgün çizim
         if "fvg" in selected_indicators and 'bullish_fvg_count' in df.columns and 'bearish_fvg_count' in df.columns:
-            # Bullish FVG için yukarı ok işaretleri
+            # Bullish FVG için dikdörtgen alanlar
             bullish_fvg_df = df[df['bullish_fvg_count'] > 0]
             if not bullish_fvg_df.empty:
+                for _, row in bullish_fvg_df.iterrows():
+                    # FVG alanını dikdörtgen olarak çiz
+                    fig.add_shape(
+                        type="rect",
+                        x0=row['timestamp'],
+                        y0=row['low'],
+                        x1=row['timestamp'] + pd.Timedelta(minutes=30),  # 30 dakika genişlik
+                        y1=row['high'],
+                        fillcolor="rgba(0, 255, 0, 0.2)",
+                        line=dict(color="rgba(0, 255, 0, 0.6)", width=1),
+                        row=1, col=1
+                    )
+                
+                # Bullish FVG işaretleri
                 fig.add_trace(
                     go.Scatter(
                         x=bullish_fvg_df['timestamp'],
-                        y=bullish_fvg_df['high'] + (bullish_fvg_df['high'] * 0.002),  # Mumun biraz üstünde
+                        y=bullish_fvg_df['high'] + (bullish_fvg_df['high'] * 0.003),
                         mode='markers',
                         marker=dict(
                             symbol='triangle-up',
-                            size=10,
-                            color='rgba(0, 255, 0, 0.8)',
-                            line=dict(width=1, color='rgba(0, 255, 0, 1)')
+                            size=12,
+                            color='rgba(0, 255, 0, 1)',
+                            line=dict(width=2, color='rgba(0, 255, 0, 1)')
                         ),
-                        name="Bullish FVG"
+                        name="Bullish FVG",
+                        hovertemplate="<b>Bullish FVG</b><br>Tarih: %{x}<br>Fiyat: %{y}<extra></extra>"
                     ),
                     row=1, col=1
                 )
             
-            # Bearish FVG için aşağı ok işaretleri
+            # Bearish FVG için dikdörtgen alanlar
             bearish_fvg_df = df[df['bearish_fvg_count'] > 0]
             if not bearish_fvg_df.empty:
+                for _, row in bearish_fvg_df.iterrows():
+                    # FVG alanını dikdörtgen olarak çiz
+                    fig.add_shape(
+                        type="rect",
+                        x0=row['timestamp'],
+                        y0=row['low'],
+                        x1=row['timestamp'] + pd.Timedelta(minutes=30),  # 30 dakika genişlik
+                        y1=row['high'],
+                        fillcolor="rgba(255, 0, 0, 0.2)",
+                        line=dict(color="rgba(255, 0, 0, 0.6)", width=1),
+                        row=1, col=1
+                    )
+                
+                # Bearish FVG işaretleri
                 fig.add_trace(
                     go.Scatter(
                         x=bearish_fvg_df['timestamp'],
-                        y=bearish_fvg_df['low'] - (bearish_fvg_df['low'] * 0.002),  # Mumun biraz altında
+                        y=bearish_fvg_df['low'] - (bearish_fvg_df['low'] * 0.003),
                         mode='markers',
                         marker=dict(
                             symbol='triangle-down',
-                            size=10,
-                            color='rgba(255, 0, 0, 0.8)',
-                            line=dict(width=1, color='rgba(255, 0, 0, 1)')
+                            size=12,
+                            color='rgba(255, 0, 0, 1)',
+                            line=dict(width=2, color='rgba(255, 0, 0, 1)')
                         ),
-                        name="Bearish FVG"
+                        name="Bearish FVG",
+                        hovertemplate="<b>Bearish FVG</b><br>Tarih: %{x}<br>Fiyat: %{y}<extra></extra>"
                     ),
                     row=1, col=1
                 )
         
-        # Break of Structure (BOS) gösterimi
+        # Break of Structure (BOS) gösterimi - Daha düzgün çizim
         if "bos" in selected_indicators and 'bullish_bos' in df.columns and 'bearish_bos' in df.columns:
-            # Bullish BOS için yukarı ok işaretleri
+            # Bullish BOS için çizgiler ve işaretler
             bullish_bos_df = df[df['bullish_bos'] == True]
             if not bullish_bos_df.empty:
+                for _, row in bullish_bos_df.iterrows():
+                    # BOS seviyesini yatay çizgi olarak çiz
+                    fig.add_shape(
+                        type="line",
+                        x0=row['timestamp'] - pd.Timedelta(hours=2),
+                        y0=row['high'],
+                        x1=row['timestamp'] + pd.Timedelta(hours=2),
+                        y1=row['high'],
+                        line=dict(color="rgba(0, 255, 0, 0.7)", width=2, dash="dash"),
+                        row=1, col=1
+                    )
+                
+                # Bullish BOS işaretleri
                 fig.add_trace(
                     go.Scatter(
                         x=bullish_bos_df['timestamp'],
-                        y=bullish_bos_df['high'] + (bullish_bos_df['high'] * 0.004),  # Mumun biraz daha üstünde
-                        mode='markers',
+                        y=bullish_bos_df['high'] + (bullish_bos_df['high'] * 0.005),
+                        mode='markers+text',
                         marker=dict(
                             symbol='arrow-up',
-                            size=12,
+                            size=15,
                             color='rgba(0, 255, 0, 1)',
                             line=dict(width=2, color='rgba(0, 255, 0, 1)')
                         ),
-                        name="Bullish BOS"
+                        text="BOS↑",
+                        textposition="top center",
+                        textfont=dict(size=10, color="green"),
+                        name="Bullish BOS",
+                        hovertemplate="<b>Bullish BOS</b><br>Tarih: %{x}<br>Seviye: %{y}<extra></extra>"
                     ),
                     row=1, col=1
                 )
             
-            # Bearish BOS için aşağı ok işaretleri
+            # Bearish BOS için çizgiler ve işaretler
             bearish_bos_df = df[df['bearish_bos'] == True]
             if not bearish_bos_df.empty:
+                for _, row in bearish_bos_df.iterrows():
+                    # BOS seviyesini yatay çizgi olarak çiz
+                    fig.add_shape(
+                        type="line",
+                        x0=row['timestamp'] - pd.Timedelta(hours=2),
+                        y0=row['low'],
+                        x1=row['timestamp'] + pd.Timedelta(hours=2),
+                        y1=row['low'],
+                        line=dict(color="rgba(255, 0, 0, 0.7)", width=2, dash="dash"),
+                        row=1, col=1
+                    )
+                
+                # Bearish BOS işaretleri
                 fig.add_trace(
                     go.Scatter(
                         x=bearish_bos_df['timestamp'],
-                        y=bearish_bos_df['low'] - (bearish_bos_df['low'] * 0.004),  # Mumun biraz daha altında
-                        mode='markers',
+                        y=bearish_bos_df['low'] - (bearish_bos_df['low'] * 0.005),
+                        mode='markers+text',
                         marker=dict(
                             symbol='arrow-down',
-                            size=12,
+                            size=15,
                             color='rgba(255, 0, 0, 1)',
                             line=dict(width=2, color='rgba(255, 0, 0, 1)')
                         ),
-                        name="Bearish BOS"
+                        text="BOS↓",
+                        textposition="bottom center",
+                        textfont=dict(size=10, color="red"),
+                        name="Bearish BOS",
+                        hovertemplate="<b>Bearish BOS</b><br>Tarih: %{x}<br>Seviye: %{y}<extra></extra>"
                     ),
                     row=1, col=1
                 )
         
-        # FVG + BOS Kombosu gösterimi
+        # FVG + BOS Kombosu gösterimi - Daha düzgün çizim
         if "fvg_bos_combo" in selected_indicators and 'fvg_bos_combo_signal' in df.columns:
-            # Bullish Kombo için özel işaret (çift yukarı ok)
+            # Bullish Kombo için özel işaret ve alan
             bullish_combo_df = df[df['fvg_bos_combo_signal'] == 2]
             if not bullish_combo_df.empty:
+                for _, row in bullish_combo_df.iterrows():
+                    # Kombo alanını vurgula
+                    fig.add_shape(
+                        type="rect",
+                        x0=row['timestamp'] - pd.Timedelta(minutes=15),
+                        y0=row['low'],
+                        x1=row['timestamp'] + pd.Timedelta(minutes=45),
+                        y1=row['high'],
+                        fillcolor="rgba(0, 255, 0, 0.3)",
+                        line=dict(color="rgba(0, 255, 0, 0.8)", width=2),
+                        row=1, col=1
+                    )
+                
+                # Bullish Kombo işaretleri
                 fig.add_trace(
                     go.Scatter(
                         x=bullish_combo_df['timestamp'],
-                        y=bullish_combo_df['high'] + (bullish_combo_df['high'] * 0.006),  # Mumun daha da üstünde
+                        y=bullish_combo_df['high'] + (bullish_combo_df['high'] * 0.008),
                         mode='markers',
                         marker=dict(
                             symbol='star',
-                            size=14,
+                            size=18,
                             color='rgba(0, 255, 0, 1)',
-                            line=dict(width=2, color='rgba(0, 255, 0, 1)')
+                            line=dict(width=3, color='rgba(0, 255, 0, 1)')
                         ),
-                        name="Bullish FVG+BOS Kombo"
+                        name="Bullish FVG+BOS Kombo",
+                        hovertemplate="<b>🔥 Bullish FVG+BOS Kombo</b><br>Tarih: %{x}<br>Fiyat: %{y}<extra></extra>"
                     ),
                     row=1, col=1
                 )
             
-            # Bearish Kombo için özel işaret (çift aşağı ok)
+            # Bearish Kombo için özel işaret ve alan
             bearish_combo_df = df[df['fvg_bos_combo_signal'] == -2]
             if not bearish_combo_df.empty:
+                for _, row in bearish_combo_df.iterrows():
+                    # Kombo alanını vurgula
+                    fig.add_shape(
+                        type="rect",
+                        x0=row['timestamp'] - pd.Timedelta(minutes=15),
+                        y0=row['low'],
+                        x1=row['timestamp'] + pd.Timedelta(minutes=45),
+                        y1=row['high'],
+                        fillcolor="rgba(255, 0, 0, 0.3)",
+                        line=dict(color="rgba(255, 0, 0, 0.8)", width=2),
+                        row=1, col=1
+                    )
+                
+                # Bearish Kombo işaretleri
                 fig.add_trace(
                     go.Scatter(
                         x=bearish_combo_df['timestamp'],
-                        y=bearish_combo_df['low'] - (bearish_combo_df['low'] * 0.006),  # Mumun daha da altında
+                        y=bearish_combo_df['low'] - (bearish_combo_df['low'] * 0.008),
                         mode='markers',
                         marker=dict(
                             symbol='star',
-                            size=14,
+                            size=18,
                             color='rgba(255, 0, 0, 1)',
-                            line=dict(width=2, color='rgba(255, 0, 0, 1)')
+                            line=dict(width=3, color='rgba(255, 0, 0, 1)')
                         ),
-                        name="Bearish FVG+BOS Kombo"
+                        name="Bearish FVG+BOS Kombo",
+                        hovertemplate="<b>🔥 Bearish FVG+BOS Kombo</b><br>Tarih: %{x}<br>Fiyat: %{y}<extra></extra>"
                     ),
                     row=1, col=1
                 )
@@ -418,21 +523,29 @@ def create_candlestick_chart(df, symbol, selected_indicators=None):
         
         # Grafik düzenini ayarla - Daha büyük ve detaylı grafik için
         fig.update_layout(
-            title=f"{symbol} Grafiği",
+            title=dict(
+                text=f"{symbol} Grafiği",
+                font=dict(size=20, color='white'),
+                x=0.5
+            ),
             xaxis_title="Tarih",
             yaxis_title="Fiyat",
             template="plotly_dark",
             xaxis_rangeslider_visible=False,
-            height=700,  # Grafik yüksekliğini artır (varsayılan 450'den 700'e)
-            margin=dict(l=50, r=50, t=80, b=50),  # Kenar boşluklarını optimize et
+            height=800,  # Grafik yüksekliğini daha da artır (700'den 800'e)
+            margin=dict(l=60, r=60, t=100, b=60),  # Kenar boşluklarını optimize et
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
                 y=1.02,
                 xanchor="right",
-                x=1
+                x=1,
+                font=dict(size=12)
             ),
-            hovermode="x unified"  # Fare imleci aynı x değerindeki tüm noktaları göstersin
+            hovermode="x unified",  # Fare imleci aynı x değerindeki tüm noktaları göstersin
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white', size=12)
         )
         
         # X ekseni formatını ayarla

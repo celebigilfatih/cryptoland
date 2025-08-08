@@ -87,6 +87,29 @@ def render_sidebar():
             color: white !important;
         }
         
+        /* Sidebar checkbox kutularının rengi */
+        [data-testid="stSidebar"] .stCheckbox input[type="checkbox"] {
+            accent-color: white !important;
+        }
+        
+        [data-testid="stSidebar"] .stCheckbox > label > div:first-child {
+            border-color: white !important;
+        }
+        
+        [data-testid="stSidebar"] .stCheckbox > label > div:first-child > div {
+            background-color: white !important;
+            border-color: white !important;
+        }
+        
+        /* Sidebar checkbox içindeki p elementlerini beyaz yap */
+        [data-testid="stSidebar"] .stCheckbox label p {
+            color: white !important;
+        }
+        
+        [data-testid="stSidebar"] .stCheckbox p {
+            color: white !important;
+        }
+        
         /* Sidebar seçim kutuları */
         .sidebar .sidebar-content .stSelectbox > div > div {
             background-color: rgba(0, 0, 0, 0.2) !important;
